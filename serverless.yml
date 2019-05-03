@@ -8,17 +8,18 @@ provider:
     - Effect: Allow
       Action:
         - "codepipeline:StartPipelineExecution"
-      Resource: arn:aws:codepipeline:eu-central-1:${ssm:AccountId}:*
+      Resource: arn:aws:codepipeline:eu-central-1:#{AWS::AccountId}:*
 
 
 plugins:
   - serverless-python-requirements
+  - serverless-pseudo-parameters
 
 functions:
   monorepoWebhook:
     handler: webhook.handler.main
     environment:
-      GITHUB_WEBHOOK_SECRET: ${ssm:GithubWebToken}
+      GITHUB_WEBHOOK_SECRET: ${ssm:GithubSecret~true}
       TARGET_BRANCH: ${file(serverless.${opt:env}.conf.yml):target_branch}
       PREFIX_REPO_NAME: ${file(serverless.${opt:env}.conf.yml):prefix_repo_name}
     events:
