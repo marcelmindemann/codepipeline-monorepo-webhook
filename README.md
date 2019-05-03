@@ -58,3 +58,5 @@ Run tests with
 ```bash
 poetry run pytest
 ```
+**TODO:**
+* implement a blacklist of directories that do not map to CodePipelines
