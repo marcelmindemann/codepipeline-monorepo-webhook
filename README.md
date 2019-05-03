@@ -1,5 +1,6 @@
 # codepipeline-monorepo-webhook
 A webhook handler that triggers AWS CodePipelines for mono repos, implemented as a serverless AWS Lambda function
+
 ## Why
 If you are building a big application consisting of multiple microservices, or you are building a data crunching application with loads of data ingestion pipelines, you probably want to use a mono repo.
 Until now, this has been a pain to build properly with AWS CodePipeline, because CodePipeline still doesn't support mono repos, even though this feature has been requested [for over two years](https://forums.aws.amazon.com/thread.jspa?threadID=265045).
@@ -19,7 +20,8 @@ When a commit changes files in `microservice-1`, you only want to build this spe
 The CodePipeline WebhookFilterRule is insufficient when trying to model this workflow, because it does [not allow for regex matching](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-codepipeline-webhook-webhookfilterrule.html).
 Strangely, the [Code*Build* WebhookFilter does support it](https://docs.aws.amazon.com/codebuild/latest/APIReference/API_WebhookFilter.html).
 
-To solve this problem, create a CodePipeline for every microservice/subrepo that exists in your application.
+To solve this problem, create a CodePipeline for every microservice/subrepo that exists in your application and let this webhook figure out which CodePipelines need to be started.
+
 ## Deployment
 You will need [Poetry](https://poetry.eustace.io/), serverless and npm. Run
 ```bash
@@ -37,13 +39,9 @@ serverless deploy --env prd
 
 Add the URL of the Lambda function to your mono repo on Github via _Settings - Webhook - Add webhook_. Add the value of `GithubSecet` to the webhook under _Secret_.
 
-Check if everything works as expected by looking at the response to the initial ping request sent by GitHub. If the response says
-'Ping received', the webhook handler is ready.
+Check if everything works as expected by looking at the response to the initial ping request sent by GitHub. If the response says 'Ping received', the webhook handler is ready. To debug problems, first look at the response to the webhook request, it'll inform you which CodePipelines have been started and which CodePipelines could not be found. For more in-depth debugging, look at the Cloudwatch logs for the lambda function.
 
 ## Configuration
-The expected directory structure of your mono repo is:
-
-
 There are two configuration options:
 
 * `target_branch`: Which branch the webhook handler should listen on. If this is set to `master`, and GitHub triggers the webhook with a request containing commits on `feature/add-logging`, the request will be dismissed.
@@ -55,4 +53,8 @@ There are two configuration options:
 Pull requests are welcome. To start development, install the dev dependencies with
 ```bash
 poetry install
+```
+Run tests with
+```bash
+poetry run pytest
 ```
