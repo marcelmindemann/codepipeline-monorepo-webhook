@@ -1,5 +1,5 @@
 # codepipeline-monorepo-webhook
-A webhook handler that triggers AWS CodePipelines for mono repos, implemented as a serverless AWS Lambda function
+A webhook handler that triggers AWS CodePipelines for mono repos, implemented as a serverless AWS Lambda function.
 
 ## Why
 If you are building a big application consisting of multiple microservices, or you are building a data crunching application with loads of data ingestion pipelines, you probably want to use a mono repo.
