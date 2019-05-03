@@ -1,0 +1,33 @@
+{
+  "ref": "refs/heads/target-branch",
+  "before": "ef95b503108565c9e5620ed534666908ec4724f3",
+  "after": "bd9a466eb4fba35cdab51442f572a3e6f63e8a57",
+  "created": false,
+  "deleted": false,
+  "forced": true,
+  "base_ref": null,
+  "compare": "https://github.com/org/repo/compare/ef95b5031085...bd9a466eb4fb",
+  "commits": [],
+  "head_commit": {
+    "id": "bd9a466eb4fba35cdab51442f572a3e6f63e8a57",
+    "tree_id": "57a2f82a2095605039efe33a3400bd7c1d653463",
+    "distinct": true,
+    "message": "commit message",
+    "timestamp": "2019-04-15T11:56:42+02:00",
+    "url": "https://github.com/org/repo/",
+    "author": {
+      "name": "Marcel Mindemann",
+      "email": "12549786+m1nde@users.noreply.github.com",
+      "username": "m1nde"
+    },
+    "added": [
+      "folder1/added.py"
+    ],
+    "removed": [
+      "folder2/removed.py"
+    ],
+    "modified": [
+      "folder3/modified.py"
+    ]
+  }
+}

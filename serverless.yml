@@ -1,0 +1,29 @@
+service: monorepo-webhook
+provider:
+  name: aws
+  runtime: python3.7
+  stage: serverless
+  region: eu-central-1
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - "codepipeline:StartPipelineExecution"
+      Resource: arn:aws:codepipeline:eu-central-1:${ssm:AccountId}:*
+
+
+plugins:
+  - serverless-python-requirements
+
+functions:
+  monorepoWebhook:
+    handler: webhook.handler.main
+    environment:
+      GITHUB_WEBHOOK_SECRET: ${ssm:GithubWebToken}
+      TARGET_BRANCH: ${file(serverless.${opt:env}.conf.yml):target_branch}
+      PREFIX_REPO_NAME: ${file(serverless.${opt:env}.conf.yml):prefix_repo_name}
+    events:
+      - http:
+          path: webhook
+          method: post
+          cors: true
+
