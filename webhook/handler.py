@@ -114,7 +114,6 @@ def get_unique_subfolders(touched_files: list) -> set:
         touched_files)
         if len(splitted) > 1]
     )
-    print(subfolders)
   else:
     subfolders = set(
       [splitted[0] for splitted in
