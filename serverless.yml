@@ -10,7 +10,6 @@ provider:
         - "codepipeline:StartPipelineExecution"
       Resource: arn:aws:codepipeline:eu-central-1:#{AWS::AccountId}:*
 
-
 plugins:
   - serverless-python-requirements
   - serverless-pseudo-parameters
@@ -19,12 +18,13 @@ functions:
   monorepoWebhook:
     handler: webhook.handler.main
     environment:
-      GITHUB_WEBHOOK_SECRET: ${ssm:GithubSecret~true}
-      TARGET_BRANCH: ${file(serverless.${opt:env}.conf.yml):target_branch}
-      PREFIX_REPO_NAME: ${file(serverless.${opt:env}.conf.yml):prefix_repo_name}
+      BRANCH_ROUTE: ${file(serverless.conf.yml):branch_routing.route}
+      BRANCH_ROUTES: ${file(serverless.conf.yml):branch_routing.routes}
+      PROJECT_NESTED: ${file(serverless.conf.yml):project.nested}
+      PROJECT_PREFIX_REPO: ${file(serverless.conf.yml):project.prefix_repo_name}
+      PROJECT_PREFIX_PARENT: ${file(serverless.conf.yml):project.prefix_parent_folder}
     events:
       - http:
           path: webhook
           method: post
           cors: true
-
