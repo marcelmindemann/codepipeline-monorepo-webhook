@@ -83,6 +83,34 @@ To accommodate different types of project structures we have implemented a few d
   * `prefixParentFolder`: If set to `true` and `nested: true`, the name of the parent folder is prepended to the names of the subfolders when building the name of the CodePipelines. For example: If you have a change in microservice-1, the name `service-1` will be prepended to `microservice-1`.
   * `prefixRepoName`: If set to `true`, the name of the repo will be prepended to the names of the subfolders when building the name of the CodePipelines. In this case that would be `mono-repo`.
 
+## Local Deployment
+To check if your configuration is correct, you can run this Lambda function locally.
+If you want to check if the webhooks are parsed correctly, you can install [ngrok](https://ngrok.com/) and after you've configured it type:
+```bash
+./ngrok http 4000
+```
+You should get an url in the console which is publicly accessible.
+If you do not get an url, go to [http://localhost:4040/](http://localhost:4040/). This is the ngrok dashboard, on the front page you can see your active url's and here you can see any requests that are made.
+
+In GitHub you can add a new webhook that triggers on push events with the ngrok url with _/webhook_. For examle `http://00ed2435.ngrok.io/webhook`.
+
+Now go to the root of your project and type:
+```bash
+sls offline
+```
+This will start a local API Gateway with the webhook running:
+```bash
+Serverless: Starting Offline: serverless/eu-central-1.
+
+Serverless: Routes for monorepoWebhook:
+Serverless: POST /webhook
+Serverless: POST /{apiVersion}/functions/monorepo-webhook-serverless-monorepoWebhook/invocations
+
+Serverless: Offline [HTTP] listening on http://localhost:4000
+Serverless: Enter "rp" to replay the last request
+```
+Now everytime a request is made, you can check the response in the console.
+
 ## Project Structures
 ### Structure-1
 ```
