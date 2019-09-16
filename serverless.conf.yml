@@ -1,10 +1,10 @@
-branch_routing:
-  route: 'prefix'
+branchRouting:
+  route: prefix
   routes:
-    - master: "prod"
-    - dev: "demo"
+    - master: prod
+    - dev: staging
 
 project:
   nested: true
-  prefix_parent_folder: true    # only if nested is true
-  prefix_repo_name: true        
+  prefixParentFolder: true
+  prefixRepoName: false

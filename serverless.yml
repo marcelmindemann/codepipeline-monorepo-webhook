@@ -13,16 +13,24 @@ provider:
 plugins:
   - serverless-python-requirements
   - serverless-pseudo-parameters
+  - serverless-offline
+
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux
+  serverless-offline:
+    port: 4000
 
 functions:
   monorepoWebhook:
-    handler: webhook.handler.main
+    handler: webhook.handler.handle
     environment:
-      BRANCH_ROUTE: ${file(serverless.conf.yml):branch_routing.route}
-      BRANCH_ROUTES: ${file(serverless.conf.yml):branch_routing.routes}
+      GITHUB_WEBHOOK_SECRET: supersecretsecret
+      BRANCH_ROUTE: ${file(serverless.conf.yml):branchRouting.route}
+      BRANCH_ROUTES:  ${file(serverless.conf.js):branchRoutes}
       PROJECT_NESTED: ${file(serverless.conf.yml):project.nested}
-      PROJECT_PREFIX_REPO: ${file(serverless.conf.yml):project.prefix_repo_name}
-      PROJECT_PREFIX_PARENT: ${file(serverless.conf.yml):project.prefix_parent_folder}
+      PROJECT_PREFIX_REPO: ${file(serverless.conf.yml):project.prefixRepoName}
+      PROJECT_PREFIX_PARENT: ${file(serverless.conf.yml):project.prefixParentFolder}
     events:
       - http:
           path: webhook
