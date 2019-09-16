@@ -1,0 +1,40 @@
+{"body": {
+    "ref": "refs/heads/master",
+    "before": "0000000000000000000000000000000000000000",
+    "after": "afb137f38d859189ff39c7ace89ff2b34416a417",
+    "repository": {
+        "id": 208766673,
+        "node_id": "MDEwOlJlcG9zaXRvcnkyMDg3NjY2NzM=",
+        "name": "test-repo",
+        "full_name": "bramhovenWAY/test-repo"
+    },
+    "commits": [],
+    "head_commit": {
+        "id": "afb137f38d859189ff39c7ace89ff2b34416a417",
+        "tree_id": "a02be2c6ec31869194a6487fdbd6c520b92a9cc8",
+        "distinct": true,
+        "message": "test",
+        "timestamp": "2019-09-16T11:58:53+02:00",
+        "url": "https://github.com/bramhovenWAY/test-repo/commit/afb137f38d859189ff39c7ace89ff2b34416a417",
+        "author": {
+            "name": "Bram Hoven",
+            "email": "bram.hoven@weareyou.com",
+            "username": "bramhovenWAY"
+        },
+        "committer": {
+            "name": "Bram Hoven",
+            "email": "bram.hoven@weareyou.com",
+            "username": "bramhovenWAY"
+        },
+        "added": [
+          "service1/folder1/added.py"
+        ],
+        "removed": [
+          "service1/folder2/removed.py"
+        ],
+        "modified": [
+          "service2/folder3/modified.py"
+        ]
+    }
+  }
+}
