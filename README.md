@@ -44,13 +44,19 @@ Check if everything works as expected by looking at the response to the initial 
 ## Configuration
 To accommodate different types of project structures we have implemented a few different configuration options:
 
-* `branch_routing`: Within Git we usually have a branch called master and another called dev (and more depending on your project). On AWS we do not have a master and a dev environment, but we have a production and a staging environment. To support this we allow you to route branches to different pipelines based on the routes you specify.
+* `branchRouting`: Within Git we usually have a branch called master and another called dev (and more depending on your project). On AWS we do not have a master and a dev environment, but we have a production and a staging environment. To support this we allow you to route branches to different pipelines based on the routes you specify.
   * `route`: If set to `'prefix'`, the name of the branch is prepended to the names of the subfolders when building the name of the CodePipelines. If set to `'postfix'`, the name of the branch is appended to the names of the subfolders when building the name of the CodePipelines. If set to `false`, the name of the branch is not prepended or appended.
-  * `routing`: Allows you to specify which branches you want to redirect to what environments. Let's say you want to route the master branch to the prod and the dev branch to the staging environment, you can create this list as follows:
+  * `routes`: Allows you to specify which branches you want to redirect to what environments, and it also acts as a filter. Let's say you want to route the master branch to the prod and the dev branch to the staging environment, you can create this list as follows:
   ```yml
-  routing:
+  routes:
     - master: 'prod'
     - dev: 'staging'
+  ```
+  If you just want the branch names and not the routes you can specify that as follows:
+  ```yml
+  routes:
+    - master
+    - dev
   ```
 
 * `project`: In the [Structure-1](#Structure-1) of this README we have shown one type of project structure. We also support nested projects ([Structure-2](#Structure-2)) like the one here:
@@ -74,8 +80,8 @@ To accommodate different types of project structures we have implemented a few d
   To configure your project structure you can use these configuration options:
 
   * `nested`: If set to `true`, you can use a project structure as described above. If set to `false`, you can use a project structure as described in [Structure-1](#Structure-1).
-  * `prefix_parent_folder`: If set to `true` and `nested: true`, the name of the parent folder is prepended to the names of the subfolders when building the name of the CodePipelines. For example: If you have a change in microservice-1, the name `service-1` will be prepended to `microservice-1`.
-  * `prefix_repo_name`: If set to `true`, the name of the repo will be prepended to the names of the subfolders when building the name of the CodePipelines. In this case that would be `mono-repo`.
+  * `prefixParentFolder`: If set to `true` and `nested: true`, the name of the parent folder is prepended to the names of the subfolders when building the name of the CodePipelines. For example: If you have a change in microservice-1, the name `service-1` will be prepended to `microservice-1`.
+  * `prefixRepoName`: If set to `true`, the name of the repo will be prepended to the names of the subfolders when building the name of the CodePipelines. In this case that would be `mono-repo`.
 
 ## Project Structures
 ### Structure-1
