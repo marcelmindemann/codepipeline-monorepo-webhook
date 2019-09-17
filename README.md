@@ -37,7 +37,7 @@ To deploy to AWS, run
 serverless deploy --env prod
 ```
 
-Add the URL of the Lambda function to your mono repo on Github via _Settings - Webhook - Add webhook_. Add the value of `GithubSecet` to the webhook under _Secret_.
+Add the URL of the Lambda function to your mono repo on Github via _Settings - Webhook - Add webhook_. Add the value of `GithubSecet` to the environment variables under `GITHUB_WEBHOOK_SECRET`. Do this preferably on AWS instead of in the config file.
 
 Check if everything works as expected by looking at the response to the initial ping request sent by GitHub. If the response says 'Ping received', the webhook handler is ready. To debug problems, first look at the response to the webhook request, it'll inform you which CodePipelines have been started and which CodePipelines could not be found. For more in-depth debugging, look at the Cloudwatch logs for the lambda function.
 
