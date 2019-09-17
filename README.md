@@ -79,7 +79,7 @@ To accommodate different types of project structures we have implemented a few d
 
   To configure your project structure you can use these configuration options:
 
-  * `nested`: If set to `true`, you can use a project structure as described above. If set to `false`, you can use a project structure as described in [Structure-1](#Structure-1).
+  * `serviceModel`: If set to `nested`, you can use a project structure as described above. If set to `split`, you can use a project structure as described in [Structure-1](#Structure-1). If set to `combined`, you can use a project structure as described in [Structure-3](#Structure-3)
   * `prefixParentFolder`: If set to `true` and `nested: true`, the name of the parent folder is prepended to the names of the subfolders when building the name of the CodePipelines. For example: If you have a change in microservice-1, the name `service-1` will be prepended to `microservice-1`.
   * `prefixRepoName`: If set to `true`, the name of the repo will be prepended to the names of the subfolders when building the name of the CodePipelines. In this case that would be `mono-repo`.
 
@@ -113,6 +113,7 @@ Now everytime a request is made, you can check the response in the console.
 
 ## Project Structures
 ### Structure-1
+In this structure we have multiple microservices which are not split into into there bigger services. This can get very complex when you have got a quite a lot of microservices and can get confusing for the developer to work with. I recommend using structure 2 or 3.
 ```
 mono-repo/
 ├── microservice-1/
@@ -126,6 +127,7 @@ mono-repo/
 ```
 
 ### Structure-2
+In this structure we have multiple services, but instead of containing every function that is connect to that service in one folder, we split it op. This makes it easier for development and more readable since you can have multiple files per microservice.
 ```
 mono-repo/
 ├── service-1/
@@ -141,6 +143,24 @@ mono-repo/
         ├── buildspec.yml
         ├── handler.js
         └── README.md
+```
+
+### Structure-3
+In this structure we have multiple services, maybe one for users and one for product. Each of these services can have multiple functions which together forms a service. When we change one function we do not want to build every other function in that service as well, we want a seperate CodePipeline for every function in that service. With codepipeline-monorepo-webhook, you can only have one file for each function with this structure...
+```
+mono-repo/
+├── service-1/
+│   ├── buildspec.yml
+│   ├── handler-1.js
+│   ├── handler-2.js
+│   ├── handler-3.js
+│   └── README.md
+├── service-2/
+│   ├── buildspec.yml
+│   ├── main-1.py
+│   ├── main-2.py
+│   └── main-3.py
+│ ...
 ```
 
 ## Development
