@@ -1,8 +1,8 @@
-service: monorepo-webhook
+service: monorepo
 provider:
   name: aws
   runtime: python3.7
-  stage: serverless
+  stage: webhook
   region: eu-central-1
   iamRoleStatements:
     - Effect: Allow
@@ -22,7 +22,7 @@ custom:
     port: 4000
 
 functions:
-  monorepoWebhook:
+  handler:
     handler: webhook.handler.handle
     environment:
       GITHUB_WEBHOOK_SECRET: supersecretsecret
