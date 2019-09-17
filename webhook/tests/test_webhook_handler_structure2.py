@@ -13,7 +13,7 @@ def webhook_fixture():
 
   os.environ['BRANCH_ROUTE'] = "false"
   os.environ["BRANCH_ROUTES"] = '["master"]'
-  os.environ['PROJECT_NESTED'] = "true"
+  os.environ['PROJECT_SERVICE_MODEL'] = "nested"
   os.environ['PROJECT_PREFIX_REPO'] = "false"
   os.environ['PROJECT_PREFIX_PARENT'] = 'true'
 

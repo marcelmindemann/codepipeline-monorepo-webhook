@@ -9,13 +9,13 @@ from ..handler import get_event_body, check_branch, get_touched_files, get_uniqu
 
 @pytest.fixture
 def webhook_fixture():
-  path = f"{os.path.dirname(os.path.abspath(__file__))}/webhook_fixture_structure1.json"
+  path = f"{os.path.dirname(os.path.abspath(__file__))}/webhook_fixture_structure3.json"
 
   os.environ['BRANCH_ROUTE'] = "false"
   os.environ["BRANCH_ROUTES"] = '["master"]'
-  os.environ['PROJECT_SERVICE_MODEL'] = "split"
+  os.environ['PROJECT_SERVICE_MODEL'] = "combined"
   os.environ['PROJECT_PREFIX_REPO'] = "false"
-  os.environ['PROJECT_PREFIX_PARENT'] = 'false'
+  os.environ['PROJECT_PREFIX_PARENT'] = 'true'
 
   with open(path, 'r') as input:
     event = json.load(input)
@@ -52,9 +52,9 @@ def test_get_touched_files_fails():
 def test_get_touched_files(webhook_fixture):
   touched_files = get_touched_files(webhook_fixture)
   assert len(touched_files) == 3
-  assert touched_files[0] == 'folder1/added.py'
-  assert touched_files[1] == 'folder2/removed.py'
-  assert touched_files[2] == 'folder3/modified.py'
+  assert touched_files[0] == 'service1/added.py'
+  assert touched_files[1] == 'service1/removed.py'
+  assert touched_files[2] == 'service2/modified.py'
 
 
 @pytest.mark.xfail(raises=NoSubfoldersFoundError, strict=True)
@@ -67,9 +67,9 @@ def test_get_unique_subfolders(webhook_fixture):
   touched_files = get_touched_files(webhook_fixture)
   subfolders = get_unique_subfolders(touched_files)
   assert len(subfolders) == 3
-  assert subfolders.__contains__("folder1")
-  assert subfolders.__contains__("folder2")
-  assert subfolders.__contains__("folder3")
+  assert subfolders.__contains__("service1/added")
+  assert subfolders.__contains__("service1/removed")
+  assert subfolders.__contains__("service2/modified")
 
 def test_get_prefix_subfolders(webhook_fixture):
   repository_name = 'codepipeline-monorepo-webhook'
@@ -78,9 +78,9 @@ def test_get_prefix_subfolders(webhook_fixture):
   branch_route = check_branch(webhook_fixture)
   codepipeline_names = prefix_subfolders(subfolders, repository_name, branch_route)
 
-  assert codepipeline_names.__contains__('folder1')
-  assert codepipeline_names.__contains__('folder2')
-  assert codepipeline_names.__contains__('folder3')
+  assert codepipeline_names.__contains__('service1-added')
+  assert codepipeline_names.__contains__('service1-removed')
+  assert codepipeline_names.__contains__('service2-modified')
 
 def test_get_prefix_subfolders_with_repo_name(webhook_fixture):
   os.environ['PROJECT_PREFIX_REPO'] = "true"
@@ -91,9 +91,9 @@ def test_get_prefix_subfolders_with_repo_name(webhook_fixture):
   branch_route = check_branch(webhook_fixture)
   codepipeline_names = prefix_subfolders(subfolders, repository_name, branch_route)
 
-  assert codepipeline_names.__contains__('codepipeline-monorepo-webhook-folder1')
-  assert codepipeline_names.__contains__('codepipeline-monorepo-webhook-folder2')
-  assert codepipeline_names.__contains__('codepipeline-monorepo-webhook-folder3')
+  assert codepipeline_names.__contains__('codepipeline-monorepo-webhook-service1-added')
+  assert codepipeline_names.__contains__('codepipeline-monorepo-webhook-service1-removed')
+  assert codepipeline_names.__contains__('codepipeline-monorepo-webhook-service2-modified')
 
 def test_get_prefix_subfolders_with_branch_routing_prefix(webhook_fixture):
   os.environ['BRANCH_ROUTE'] = "prefix"
@@ -105,9 +105,9 @@ def test_get_prefix_subfolders_with_branch_routing_prefix(webhook_fixture):
   branch_route = check_branch(webhook_fixture)
   codepipeline_names = prefix_subfolders(subfolders, repository_name, branch_route)
 
-  assert codepipeline_names.__contains__('prod-folder1')
-  assert codepipeline_names.__contains__('prod-folder2')
-  assert codepipeline_names.__contains__('prod-folder3')
+  assert codepipeline_names.__contains__('prod-service1-added')
+  assert codepipeline_names.__contains__('prod-service1-removed')
+  assert codepipeline_names.__contains__('prod-service2-modified')
 
 def test_get_prefix_subfolders_with_branch_routing_postfix(webhook_fixture):
   os.environ['BRANCH_ROUTE'] = "postfix"
@@ -119,9 +119,9 @@ def test_get_prefix_subfolders_with_branch_routing_postfix(webhook_fixture):
   branch_route = check_branch(webhook_fixture)
   codepipeline_names = prefix_subfolders(subfolders, repository_name, branch_route)
 
-  assert codepipeline_names.__contains__('folder1-prod')
-  assert codepipeline_names.__contains__('folder2-prod')
-  assert codepipeline_names.__contains__('folder3-prod')
+  assert codepipeline_names.__contains__('service1-added-prod')
+  assert codepipeline_names.__contains__('service1-removed-prod')
+  assert codepipeline_names.__contains__('service2-modified-prod')
 
 def test_get_prefix_subfolders_with_repo_name_branch_routing_prefix(webhook_fixture):
   os.environ['BRANCH_ROUTE'] = "prefix"
@@ -134,9 +134,9 @@ def test_get_prefix_subfolders_with_repo_name_branch_routing_prefix(webhook_fixt
   branch_route = check_branch(webhook_fixture)
   codepipeline_names = prefix_subfolders(subfolders, repository_name, branch_route)
 
-  assert codepipeline_names.__contains__('prod-codepipeline-monorepo-webhook-folder1')
-  assert codepipeline_names.__contains__('prod-codepipeline-monorepo-webhook-folder2')
-  assert codepipeline_names.__contains__('prod-codepipeline-monorepo-webhook-folder3')
+  assert codepipeline_names.__contains__('prod-codepipeline-monorepo-webhook-service1-added')
+  assert codepipeline_names.__contains__('prod-codepipeline-monorepo-webhook-service1-removed')
+  assert codepipeline_names.__contains__('prod-codepipeline-monorepo-webhook-service2-modified')
 
 def test_get_prefix_subfolders_with_repo_name_branch_routing_postfix(webhook_fixture):
   os.environ['BRANCH_ROUTE'] = "postfix"
@@ -149,6 +149,6 @@ def test_get_prefix_subfolders_with_repo_name_branch_routing_postfix(webhook_fix
   branch_route = check_branch(webhook_fixture)
   codepipeline_names = prefix_subfolders(subfolders, repository_name, branch_route)
 
-  assert codepipeline_names.__contains__('codepipeline-monorepo-webhook-folder1-prod')
-  assert codepipeline_names.__contains__('codepipeline-monorepo-webhook-folder2-prod')
-  assert codepipeline_names.__contains__('codepipeline-monorepo-webhook-folder3-prod')
+  assert codepipeline_names.__contains__('codepipeline-monorepo-webhook-service1-added-prod')
+  assert codepipeline_names.__contains__('codepipeline-monorepo-webhook-service1-removed-prod')
+  assert codepipeline_names.__contains__('codepipeline-monorepo-webhook-service2-modified-prod')

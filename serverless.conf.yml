@@ -5,6 +5,6 @@ branchRouting:
     - dev: staging
 
 project:
-  nested: true
+  serviceModel: nested
   prefixParentFolder: true
   prefixRepoName: false

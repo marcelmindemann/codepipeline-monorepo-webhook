@@ -28,7 +28,7 @@ functions:
       GITHUB_WEBHOOK_SECRET: supersecretsecret
       BRANCH_ROUTE: ${file(serverless.conf.yml):branchRouting.route}
       BRANCH_ROUTES:  ${file(serverless.conf.js):branchRoutes}
-      PROJECT_NESTED: ${file(serverless.conf.yml):project.nested}
+      PROJECT_SERVICE_MODEL: ${file(serverless.conf.yml):project.serviceModel}
       PROJECT_PREFIX_REPO: ${file(serverless.conf.yml):project.prefixRepoName}
       PROJECT_PREFIX_PARENT: ${file(serverless.conf.yml):project.prefixParentFolder}
     events:

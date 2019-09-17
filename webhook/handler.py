@@ -106,7 +106,7 @@ def get_unique_subfolders(touched_files: list) -> set:
   """
   subfolders = []
   
-  if os.environ["PROJECT_NESTED"] == 'true':
+  if os.environ["PROJECT_SERVICE_MODEL"] == 'nested':
     # extract unique top-level directories from all the paths of touched files
     subfolders = set(
       ['/'.join(splitted[:-1:]) for splitted in
@@ -114,9 +114,16 @@ def get_unique_subfolders(touched_files: list) -> set:
         touched_files)
         if len(splitted) > 1]
     )
-  else:
+  elif os.environ["PROJECT_SERVICE_MODEL"] == 'split':
     subfolders = set(
       [splitted[0] for splitted in
+        (file.split('/') for file in
+        touched_files)
+        if len(splitted) > 1]
+    )
+  elif os.environ["PROJECT_SERVICE_MODEL"] == 'combined':
+    subfolders = set(
+      ['/'.join(splitted).split('.')[0] for splitted in
         (file.split('/') for file in
         touched_files)
         if len(splitted) > 1]
@@ -139,7 +146,7 @@ def prefix_subfolders(subfolders: set, repo_prefix: str, branch_route: str) -> l
   repo_prefix = repo_prefix + "-" if os.environ["PROJECT_PREFIX_REPO"] == 'true' else ""
 
   for subfolder in subfolders:
-    project_name = subfolder.split('/')[0] if os.environ["PROJECT_NESTED"] == 'true' else ''
+    project_name = subfolder.split('/')[0] if os.environ["PROJECT_SERVICE_MODEL"] == 'nested' or os.environ["PROJECT_SERVICE_MODEL"] == 'combined' else ''
     subfolder = subfolder.split('/')[len(subfolder.split('/'))-1]
     project_name = project_name + "-" if len(project_name) > 0 and os.environ["PROJECT_PREFIX_PARENT"] == 'true' else ""
 
