@@ -234,7 +234,7 @@ def handle(event, context):
   repository_name = event_body['repository']['name']
   codepipeline_names = prefix_subfolders(subfolders, repository_name, branch_route)
 
-  if not event['isOffline']:
+  if 'isOffline' not in event or not event['isOffline']:
     return start_codepipelines(codepipeline_names)
   else:
     return {
