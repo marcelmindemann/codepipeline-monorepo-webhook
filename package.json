@@ -12,7 +12,8 @@
     "serverless-offline": "^5.11.0"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "deploy": "serverless deploy",
+    "test": "pytest -p no:cacheprovider --disable-pytest-warnings"
   },
   "author": "",
   "license": "ISC"
