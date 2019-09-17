@@ -164,7 +164,7 @@ def start_codepipelines(codepipeline_names: list) -> dict:
   started_codepipelines = []
   for codepipeline_name in codepipeline_names:
     try:
-      response = codepipeline_client.start_pipeline_execution(
+      codepipeline_client.start_pipeline_execution(
           name=codepipeline_name
       )
       logger.info(f'Started CodePipeline {codepipeline_name}.')
