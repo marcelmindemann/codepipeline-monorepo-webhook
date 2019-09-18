@@ -20,12 +20,13 @@ custom:
     dockerizePip: non-linux
   serverless-offline:
     port: 4000
+  environment: ${file(env.yml):${self:custom.stage}, file(env.yml):default}
 
 functions:
   handler:
     handler: webhook.handler.handle
     environment:
-      GITHUB_WEBHOOK_SECRET: supersecretsecret
+      GITHUB_WEBHOOK_SECRET: ${self:custom.environment.githubWebhookSecret}
       BRANCH_ROUTE: ${file(serverless.conf.yml):branchRouting.route}
       BRANCH_ROUTES:  ${file(serverless.conf.js):branchRoutes}
       PROJECT_SERVICE_MODEL: ${file(serverless.conf.yml):project.serviceModel}
