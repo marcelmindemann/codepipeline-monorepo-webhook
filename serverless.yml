@@ -2,7 +2,7 @@ service: monorepo
 provider:
   name: aws
   runtime: python3.7
-  stage: webhook
+  stage: ${opt:stage, 'webhook'}
   region: eu-central-1
   iamRoleStatements:
     - Effect: Allow
@@ -20,7 +20,7 @@ custom:
     dockerizePip: non-linux
   serverless-offline:
     port: 4000
-  environment: ${file(env.yml):${self:custom.stage}, file(env.yml):default}
+  environment: ${file(env.yml):${self:provider.stage}, file(env.yml):default}
 
 functions:
   handler:
