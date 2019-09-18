@@ -59,23 +59,7 @@ To accommodate different types of project structures we have implemented a few d
     - dev
   ```
 
-* `project`: In the [Structure-1](#Structure-1) of this README we have shown one type of project structure. We also support nested projects ([Structure-2](#Structure-2)) like the one here:
-  ```
-  mono-repo/
-  ├── service-1/
-  │   ├── microservice-1/
-  │   │   ├── buildspec.yml
-  │   │   ├── handler.js
-  │   │   └── README.md
-  │   └── microservice-2/
-  │       ├── buildspec.yml
-  │       └── main.py
-  └── service-2/
-      └── microservice-3/
-          ├── buildspec.yml
-          ├── handler.js
-          └── README.md
-  ```
+* `project`: In the [Structure-1](#Structure-1) of this README we have shown one type of project structure. We also support nested projects ([Structure-2](#Structure-2)) and the recommended structure from the Serverless Framework ([Structure-3](#Structure-3)).
 
   To configure your project structure you can use these configuration options:
 
