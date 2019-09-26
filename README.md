@@ -63,7 +63,7 @@ To accommodate different types of project structures we have implemented a few d
 
   To configure your project structure you can use these configuration options:
 
-  * `serviceModel`: If set to `nested`, you can use a project structure as described above. If set to `split`, you can use a project structure as described in [Structure-1](#Structure-1). If set to `combined`, you can use a project structure as described in [Structure-3](#Structure-3)
+  * `serviceModel`: If set to `split`, you can use a project structure as described in [Structure-1](#Structure-1). If set to `nested`, you can use a project structure  as described in [Structure-2](#Structure-2). If set to `combined`, you can use a project structure as described in [Structure-3](#Structure-3). If set to `full`, you can use a project structure as described in [Structure-4](#Structure-4).
   * `prefixParentFolder`: If set to `true` and `nested: true`, the name of the parent folder is prepended to the names of the subfolders when building the name of the CodePipelines. For example: If you have a change in microservice-1, the name `service-1` will be prepended to `microservice-1`.
   * `prefixRepoName`: If set to `true`, the name of the repo will be prepended to the names of the subfolders when building the name of the CodePipelines. In this case that would be `mono-repo`.
 
@@ -145,6 +145,29 @@ mono-repo/
 │   ├── main-2.py
 │   └── main-3.py
 │ ...
+```
+
+### Structure-4
+In this structure we have multiple services, but instead of containing every function that is connect to that service in one folder, we split it op. This makes it easier for development and more readable since you can have multiple files per microservice. It also supports a folder with documentation like photo's and other documents.
+```
+mono-repo/
+├── architecture/
+│   ├ architect-photo.png
+│   └ architect-design.docx
+└── services/
+    ├── service-1/
+    │   ├── microservice-1/
+    │   │   ├── buildspec.yml
+    │   │   ├── handler.js
+    │   │   └── README.md
+    │   └── microservice-2/
+    │       ├── buildspec.yml
+    │       └── main.py
+    └── service-2/
+        └── microservice-3/
+            ├── buildspec.yml
+            ├── handler.js
+            └── README.md
 ```
 
 ## Development

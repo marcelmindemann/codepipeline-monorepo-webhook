@@ -106,24 +106,35 @@ def get_unique_subfolders(touched_files: list) -> set:
   """
   subfolders = []
   
-  if os.environ["PROJECT_SERVICE_MODEL"] == 'nested':
-    # extract unique top-level directories from all the paths of touched files
-    subfolders = set(
-      ['/'.join(splitted[:-1:]) for splitted in
-        (file.split('/') for file in
-        touched_files)
-        if len(splitted) > 1]
-    )
-  elif os.environ["PROJECT_SERVICE_MODEL"] == 'split':
+  if os.environ["PROJECT_SERVICE_MODEL"] == 'split':
+    # Get the unique top-level directories
     subfolders = set(
       [splitted[0] for splitted in
         (file.split('/') for file in
         touched_files)
         if len(splitted) > 1]
     )
+  elif os.environ["PROJECT_SERVICE_MODEL"] == 'nested':
+    # Get the unique second-level directories
+    subfolders = set(
+      ['/'.join(splitted[:-1:]) for splitted in
+        (file.split('/') for file in
+        touched_files)
+        if len(splitted) > 1]
+    )
   elif os.environ["PROJECT_SERVICE_MODEL"] == 'combined':
+    # Get the unique top-level directories
     subfolders = set(
       ['/'.join(splitted).split('.')[0] for splitted in
+        (file.split('/') for file in
+        touched_files)
+        if len(splitted) > 1]
+    )
+
+  elif os.environ["PROJECT_SERVICE_MODEL"] == 'full':
+    # Get the unique third-level directories
+    subfolders = set(
+      ['/'.join(splitted[1:-1:]) for splitted in
         (file.split('/') for file in
         touched_files)
         if len(splitted) > 1]
@@ -146,7 +157,7 @@ def prefix_subfolders(subfolders: set, repo_prefix: str, branch_route: str) -> l
   repo_prefix = repo_prefix + "-" if os.environ["PROJECT_PREFIX_REPO"] == 'true' else ""
 
   for subfolder in subfolders:
-    project_name = subfolder.split('/')[0] if os.environ["PROJECT_SERVICE_MODEL"] == 'nested' or os.environ["PROJECT_SERVICE_MODEL"] == 'combined' else ''
+    project_name = subfolder.split('/')[0] if os.environ["PROJECT_SERVICE_MODEL"] == 'nested' or os.environ["PROJECT_SERVICE_MODEL"] == 'combined' or os.environ["PROJECT_SERVICE_MODEL"] == 'full' else ''
     subfolder = subfolder.split('/')[len(subfolder.split('/'))-1]
     project_name = project_name + "-" if len(project_name) > 0 and os.environ["PROJECT_PREFIX_PARENT"] == 'true' else ""
 
