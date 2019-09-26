@@ -193,7 +193,7 @@ def start_codepipelines(codepipeline_names: list) -> dict:
 
   if len(failed_codepipelines) > 0:
     return {
-      'statusCode': 500,
+      'statusCode': 502,
       'body': f'Started CodePipelines {started_codepipelines}. \nCould not start CodePipelines {failed_codepipelines}.'
     }
   else:
