@@ -234,19 +234,28 @@ def handle(event, context):
     branch_route = check_branch(event_body)
   except NotListeningOnBranchError as err:
     logger.error(err.error_dict['body'])
-    return err.error_dict
+    return {
+      'statusCode': 202,
+      'body': f'Not started any CodePipelines. Not listening on branch {event_body["ref"]}.'
+    }
 
   try:
     touched_files = get_touched_files(event_body)
   except NoFilesTouchedError as err:
     logger.error(err.error_dict['body'])
-    return err.error_dict
+    return {
+      'statusCode': 202,
+      'body': f'Not started any CodePipelines. No files have been changed'
+    }
 
   try:
     subfolders = get_unique_subfolders(touched_files)
   except NoSubfoldersFoundError as err:
     logger.error(err.error_dict['body'])
-    return err.error_dict
+    return {
+      'statusCode': 202,
+      'body': f'Not started any CodePipelines. No subfolders found.'
+    }
 
   logger.info('---- STARTING RESPECTIVE CODEPIPELINES ----')
   repository_name = event_body['repository']['name']
