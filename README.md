@@ -41,12 +41,7 @@ Add the URL of the Lambda function to your mono repo on Github via _Settings - W
 
 Check if everything works as expected by looking at the response to the initial ping request sent by GitHub. If the response says 'Ping received', the webhook handler is ready. To debug problems, first look at the response to the webhook request, it'll inform you which CodePipelines have been started and which CodePipelines could not be found. For more in-depth debugging, look at the Cloudwatch logs for the lambda function.
 
-If you want to be able to handle pull requests as well, you will need to add a personal access token. The access token needs to have access to the repository you are working with. You can add the personal access token under the GITHUB_ACCESS_TOKEN environment variable. You will also need an AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY to be able to update the codepipeline.
-
-The AWS user that is connected to those credentials will need the following permissions:
-  * codepipeline:GetPipeline
-  * codepipeline:UpdatePipeline
-  * iam:PassRole
+If you want to be able to handle pull requests as well, you will need to add a personal access token. The access token needs to have access to the repository you are working with. You can add the personal access token under the GITHUB_ACCESS_TOKEN environment variable.
 
 ## Configuration
 To accommodate different types of project structures we have implemented a few different configuration options:

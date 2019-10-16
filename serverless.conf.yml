@@ -2,13 +2,13 @@ branchRouting:
   route: prefix
   routes:
     - master: prod
-    - dev: staging
+    - dev: dev
 
 pullRequests:
-  route: prefix
+  route: postfix
   routing: test
 
 project:
-  serviceModel: nested
+  serviceModel: full
   prefixParentFolder: true
   prefixRepoName: false

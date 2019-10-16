@@ -134,16 +134,6 @@ def get_unique_subfolders(touched_files: list) -> set:
   else:
     raise NoSubfoldersFoundError()
 
-def handle(event, pipelines):
-  cp_client = boto3.client('codepipeline')
-
-  pipeline_info = {}
-
-  for pipeline in pipelines:
-    pipeline_info[pipeline] = cp_client.get_pipeline(name=pipeline)
-
-  print(pipeline_info)
-
 def prefix_subfolders(subfolders: set, repo_prefix: str, branch_route: str) -> list:
   """
   prefix folder names with a string, joining with dash
@@ -233,17 +223,23 @@ def handle(event, context):
       'body': 'Ping received.'
     }
 
-  if event['headers']['X-GitHub-Event'] == 'push':
-    EVENT_TYPE = 'push'
-
-  if event['headers']['X-GitHub-Event'] == 'pull_request':
-    EVENT_TYPE = 'pull_request'
-
   github_delivery_id = event['headers']['X-GitHub-Delivery']
   logger.info(f'Webhook handler invoked for Github delivery id {github_delivery_id}.')
 
   logger.info('---- PARSING WEBHOOK PAYLOAD ----')
   event_body = get_event_body(event)
+
+  if event['headers']['X-GitHub-Event'] == 'push':
+    EVENT_TYPE = 'push'
+
+  if event['headers']['X-GitHub-Event'] == 'pull_request':
+    if event_body['action'] == 'closed':
+      return {
+      'statusCode': 202,
+      'body': f'I do not handle pull_request closed events'
+    }
+    EVENT_TYPE = 'pull_request'
+
   branch_route = None
   try:
     branch_route = check_branch(event_body)
@@ -286,7 +282,9 @@ def handle(event, context):
 
   if EVENT_TYPE == 'pull_request':
     head_branch = event_body['pull_request']['head']['ref']
-    codepipeline_names = pr_handler.handle_pipelines(event, codepipeline_names, head_branch)
+    handled_pipelines = pr_handler.handle_pipelines(event, codepipeline_names, head_branch)
+    codepipeline_names = handled_pipelines['successful']
+    logger.info(f'Could not modify CodePipelines {handled_pipelines["failed"]}.')
 
   if 'isOffline' not in event or not event['isOffline']:
     return start_codepipelines(codepipeline_names)

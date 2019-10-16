@@ -37,17 +37,20 @@ def get_touched_files(event_body: dict) -> list:
 def handle_pipelines(event, pipelines, branch):
   cp_client = boto3.client('codepipeline')
 
-  handled_pipelines = []
+  handled_pipelines = {'successful': [], 'failed': []}
 
   for pipeline in pipelines:
-    pipeline_info = cp_client.get_pipeline(name=pipeline)
-    actions = pipeline_info['pipeline']['stages'][0]['actions']
-    
-    for i, action in enumerate(actions):
-      if action['name'] == 'Source':
-        pipeline_info['pipeline']['stages'][0]['actions'][i]['configuration']['Branch'] = branch
+    try:
+      pipeline_info = cp_client.get_pipeline(name=pipeline)
+      actions = pipeline_info['pipeline']['stages'][0]['actions']
+      
+      for i, action in enumerate(actions):
+        if action['name'] == 'Source':
+          pipeline_info['pipeline']['stages'][0]['actions'][i]['configuration']['Branch'] = branch
 
-    cp_client.update_pipeline(pipeline=pipeline_info['pipeline'])
-    handled_pipelines.append(pipeline_info['pipeline']['name'])
+      cp_client.update_pipeline(pipeline=pipeline_info['pipeline'])
+      handled_pipelines['successful'].append(pipeline_info['pipeline']['name'])
+    except cp_client.exceptions.PipelineNotFoundException:
+      handled_pipelines['failed'].append(pipeline)
 
   return handled_pipelines
