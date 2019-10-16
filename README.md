@@ -41,6 +41,13 @@ Add the URL of the Lambda function to your mono repo on Github via _Settings - W
 
 Check if everything works as expected by looking at the response to the initial ping request sent by GitHub. If the response says 'Ping received', the webhook handler is ready. To debug problems, first look at the response to the webhook request, it'll inform you which CodePipelines have been started and which CodePipelines could not be found. For more in-depth debugging, look at the Cloudwatch logs for the lambda function.
 
+If you want to be able to handle pull requests as well, you will need to add a personal access token. The access token needs to have access to the repository you are working with. You can add the personal access token under the GITHUB_ACCESS_TOKEN environment variable. You will also need an AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY to be able to update the codepipeline.
+
+The AWS user that is connected to those credentials will need the following permissions:
+  * codepipeline:GetPipeline
+  * codepipeline:UpdatePipeline
+  * iam:PassRole
+
 ## Configuration
 To accommodate different types of project structures we have implemented a few different configuration options:
 
@@ -58,6 +65,9 @@ To accommodate different types of project structures we have implemented a few d
     - master
     - dev
   ```
+* `pullRequests`: This part will only be used if you have enabled pull_requests in the GitHub webhook manager. Here we can specify what CodePipelines we need to run in order to unittest these pull requests. The pull requests it will listen for will be to the same branches as specified under routes. These branches are the `base` branches in the pull request. Since the `head` of the pull request can change we have decided that with each pull request we will change de `Source` action in the CodePipeline to pull from the `head` branch of the pull request.
+  * `route`: If set to `'prefix'`, the routing name will be prefixed to the name of the CodePipeline. If set to `'postfix'`, the routing name will be postfixed to the name of the CodePipeline.
+  * `routing`: This is the routing name that will be used to create the name of the CodePipeline.
 
 * `project`: In the [Structure-1](#Structure-1) of this README we have shown one type of project structure. We also support nested projects ([Structure-2](#Structure-2)) and the recommended structure from the Serverless Framework ([Structure-3](#Structure-3)).
 

@@ -4,6 +4,10 @@ branchRouting:
     - master: prod
     - dev: staging
 
+pullRequests:
+  route: prefix
+  routing: test
+
 project:
   serviceModel: nested
   prefixParentFolder: true

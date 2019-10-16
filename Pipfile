@@ -12,6 +12,7 @@ pytest = "*"
 pytest-cov = "*"
 pylint = "*"
 astroid = "*"
+requests = "*"
 
 [requires]
 python_version = "3.7"

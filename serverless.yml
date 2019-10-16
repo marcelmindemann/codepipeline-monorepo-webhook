@@ -26,9 +26,14 @@ functions:
   handler:
     handler: webhook.handler.handle
     environment:
+      AWS_ACCESS_KEY_ID: ${self:custom.environment.awsAccessKeyId}
+      AWS_SECRET_ACCESS_KEY: ${self:custom.environment.awsSecretAccessKey}
       GITHUB_WEBHOOK_SECRET: ${self:custom.environment.githubWebhookSecret}
+      GITHUB_ACCESS_TOKEN: ${self:custom.environment.githubAccessToken}
       BRANCH_ROUTE: ${file(serverless.conf.yml):branchRouting.route}
       BRANCH_ROUTES:  ${file(serverless.conf.js):branchRoutes}
+      PULL_REQUEST_ROUTE: ${file(serverless.conf.yml):pullRequests.route}
+      PULL_REQUEST_ROUTING: ${file(serverless.conf.yml):pullRequests.routing}
       PROJECT_SERVICE_MODEL: ${file(serverless.conf.yml):project.serviceModel}
       PROJECT_PREFIX_REPO: ${file(serverless.conf.yml):project.prefixRepoName}
       PROJECT_PREFIX_PARENT: ${file(serverless.conf.yml):project.prefixParentFolder}

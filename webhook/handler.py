@@ -1,17 +1,22 @@
 import hmac
 import json
 import logging
+import json
 import os
 from urllib.parse import unquote
-import json
 
 import boto3
+
+import webhook.push_handler as push_handler
+import webhook.pull_request_handler as pr_handler
 
 from .exceptions import NoSignatureError, NotListeningOnBranchError, NoSubfoldersFoundError, \
     InvalidSignatureError, NoFilesTouchedError
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+EVENT_TYPE = ''
 
 def calculate_message_signature(key: str, msg: str):
   """
@@ -61,7 +66,13 @@ def check_branch(event_body: dict) -> bool:
   :param target_branch: which branch to care about
   :return: True if pushed branch is worthy of attention
   """
-  pushed_branch = event_body['ref']
+  pushed_branch = ''
+
+  if EVENT_TYPE == 'push':
+    pushed_branch = event_body['ref']
+  if EVENT_TYPE == 'pull_request':
+    pushed_branch = 'refs/heads/' + event_body['pull_request']['base']['ref']
+
   logger.info(f'Pushed branch: {pushed_branch}')
 
   branches = json.loads(os.environ["BRANCH_ROUTES"])
@@ -74,29 +85,6 @@ def check_branch(event_body: dict) -> bool:
       return branches[branch] if type(branches) is dict else True
   
   raise NotListeningOnBranchError(pushed_branch)
-
-def get_touched_files(event_body: dict) -> list:
-  """
-  extract list of added, removed and modified files with full paths from webhook request
-  :param event_body: dict holding the event body
-  :return: list of touched files
-  """
-  touched_files = []
-
-  # look at every touched file in every commit
-  for commit in event_body['commits']:
-    touched_files.extend(commit['added'])
-    touched_files.extend(commit['removed'])
-    touched_files.extend(commit['modified'])
-
-  touched_files.extend((event_body['head_commit']['added']))
-  touched_files.extend((event_body['head_commit']['removed']))
-  touched_files.extend((event_body['head_commit']['modified']))
-
-  if len(touched_files) > 0:
-    return touched_files
-  else:
-    raise NoFilesTouchedError()
 
 def get_unique_subfolders(touched_files: list) -> set:
   """
@@ -146,6 +134,16 @@ def get_unique_subfolders(touched_files: list) -> set:
   else:
     raise NoSubfoldersFoundError()
 
+def handle(event, pipelines):
+  cp_client = boto3.client('codepipeline')
+
+  pipeline_info = {}
+
+  for pipeline in pipelines:
+    pipeline_info[pipeline] = cp_client.get_pipeline(name=pipeline)
+
+  print(pipeline_info)
+
 def prefix_subfolders(subfolders: set, repo_prefix: str, branch_route: str) -> list:
   """
   prefix folder names with a string, joining with dash
@@ -161,12 +159,22 @@ def prefix_subfolders(subfolders: set, repo_prefix: str, branch_route: str) -> l
     subfolder = subfolder.split('/')[len(subfolder.split('/'))-1]
     project_name = project_name + "-" if len(project_name) > 0 and os.environ["PROJECT_PREFIX_PARENT"] == 'true' else ""
 
-    if os.environ["BRANCH_ROUTE"] == 'prefix':
-        prefixed_subfolders.append(f'{branch_route}-{repo_prefix}{project_name}{subfolder}')
-    elif os.environ["BRANCH_ROUTE"] == 'postfix':
-        prefixed_subfolders.append(f'{repo_prefix}{project_name}{subfolder}-{branch_route}')
-    else:
-      prefixed_subfolders.append(f'{repo_prefix}{project_name}{subfolder}')
+    if EVENT_TYPE == 'push':
+      if os.environ["BRANCH_ROUTE"] == 'prefix':
+          prefixed_subfolders.append(f'{branch_route}-{repo_prefix}{project_name}{subfolder}')
+      elif os.environ["BRANCH_ROUTE"] == 'postfix':
+          prefixed_subfolders.append(f'{repo_prefix}{project_name}{subfolder}-{branch_route}')
+      else:
+        prefixed_subfolders.append(f'{repo_prefix}{project_name}{subfolder}')
+
+    if EVENT_TYPE == 'pull_request':
+      if os.environ["PULL_REQUEST_ROUTE"] == 'prefix':
+          prefixed_subfolders.append(f'{os.environ["PULL_REQUEST_ROUTING"]}-{repo_prefix}{project_name}{subfolder}')
+      elif os.environ["PULL_REQUEST_ROUTE"] == 'postfix':
+          prefixed_subfolders.append(f'{repo_prefix}{project_name}{subfolder}-{os.environ["PULL_REQUEST_ROUTING"]}')
+      else:
+        prefixed_subfolders.append(f'{repo_prefix}{project_name}{subfolder}')
+
   
   return prefixed_subfolders
 
@@ -209,6 +217,7 @@ def handle(event, context):
   :param context: lambda context
   :return: nothing
   """
+  global EVENT_TYPE
 
   webhook_secret = os.environ['GITHUB_WEBHOOK_SECRET']
   logger.info('---- CHECKING MESSAGE AUTHENTICATION ----')
@@ -224,6 +233,12 @@ def handle(event, context):
       'body': 'Ping received.'
     }
 
+  if event['headers']['X-GitHub-Event'] == 'push':
+    EVENT_TYPE = 'push'
+
+  if event['headers']['X-GitHub-Event'] == 'pull_request':
+    EVENT_TYPE = 'pull_request'
+
   github_delivery_id = event['headers']['X-GitHub-Delivery']
   logger.info(f'Webhook handler invoked for Github delivery id {github_delivery_id}.')
 
@@ -234,13 +249,21 @@ def handle(event, context):
     branch_route = check_branch(event_body)
   except NotListeningOnBranchError as err:
     logger.error(err.error_dict['body'])
+    pushed_branch = ''
+    if EVENT_TYPE == 'push':
+      pushed_branch = event_body['ref']
+    if EVENT_TYPE == 'pull_request':
+      pushed_branch = event_body['pull_request']['base']['ref']
     return {
       'statusCode': 202,
-      'body': f'Not started any CodePipelines. Not listening on branch {event_body["ref"]}.'
+      'body': f'Not started any CodePipelines. Not listening on branch {pushed_branch}.'
     }
 
   try:
-    touched_files = get_touched_files(event_body)
+    if EVENT_TYPE == 'push':
+      touched_files = push_handler.get_touched_files(event_body)
+    if EVENT_TYPE == 'pull_request':
+      touched_files = pr_handler.get_touched_files(event_body)
   except NoFilesTouchedError as err:
     logger.error(err.error_dict['body'])
     return {
@@ -260,6 +283,10 @@ def handle(event, context):
   logger.info('---- STARTING RESPECTIVE CODEPIPELINES ----')
   repository_name = event_body['repository']['name']
   codepipeline_names = prefix_subfolders(subfolders, repository_name, branch_route)
+
+  if EVENT_TYPE == 'pull_request':
+    head_branch = event_body['pull_request']['head']['ref']
+    codepipeline_names = pr_handler.handle_pipelines(event, codepipeline_names, head_branch)
 
   if 'isOffline' not in event or not event['isOffline']:
     return start_codepipelines(codepipeline_names)
