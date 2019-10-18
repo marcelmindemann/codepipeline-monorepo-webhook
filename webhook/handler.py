@@ -146,7 +146,7 @@ def prefix_subfolders(subfolders: set, repo_prefix: str, branch_route: str) -> l
 
   for subfolder in subfolders:
     project_name = subfolder.split('/')[0] if os.environ["PROJECT_SERVICE_MODEL"] == 'nested' or os.environ["PROJECT_SERVICE_MODEL"] == 'combined' or os.environ["PROJECT_SERVICE_MODEL"] == 'full' else ''
-    subfolder = subfolder.split('/')[len(subfolder.split('/'))-1]
+    subfolder = subfolder.split('/')[1]
     project_name = project_name + "-" if len(project_name) > 0 and os.environ["PROJECT_PREFIX_PARENT"] == 'true' else ""
 
     if EVENT_TYPE == 'push':
@@ -168,13 +168,12 @@ def prefix_subfolders(subfolders: set, repo_prefix: str, branch_route: str) -> l
   
   return prefixed_subfolders
 
-def start_codepipelines(codepipeline_names: list) -> dict:
+def start_codepipelines(codepipeline_names: list, codepipeline_client) -> dict:
   """
   start AWS CodePipelines
   :param codepipeline_names: the CodePipelines to start
   :return: dict holding the results of the start operations
   """
-  codepipeline_client = boto3.Session().client('codepipeline')
 
   failed_codepipelines = []
   started_codepipelines = []
@@ -280,14 +279,16 @@ def handle(event, context):
   repository_name = event_body['repository']['name']
   codepipeline_names = prefix_subfolders(subfolders, repository_name, branch_route)
 
+  codepipeline_client = boto3.Session().client('codepipeline')
+
   if EVENT_TYPE == 'pull_request':
     head_branch = event_body['pull_request']['head']['ref']
-    handled_pipelines = pr_handler.handle_pipelines(event, codepipeline_names, head_branch)
+    handled_pipelines = pr_handler.handle_pipelines(event, codepipeline_names, head_branch, codepipeline_client)
     codepipeline_names = handled_pipelines['successful']
     logger.info(f'Could not modify CodePipelines {handled_pipelines["failed"]}.')
 
   if 'isOffline' not in event or not event['isOffline']:
-    return start_codepipelines(codepipeline_names)
+    return start_codepipelines(codepipeline_names, codepipeline_client)
   else:
     return {
       'statusCode': 200,
