@@ -145,27 +145,27 @@ def prefix_subfolders(subfolders: set, repo_prefix: str, branch_route: str) -> l
   repo_prefix = repo_prefix + "-" if os.environ["PROJECT_PREFIX_REPO"] == 'true' else ""
 
   for subfolder in subfolders:
-    project_name = subfolder.split('/')[0] if os.environ["PROJECT_SERVICE_MODEL"] == 'nested' or os.environ["PROJECT_SERVICE_MODEL"] == 'combined' or os.environ["PROJECT_SERVICE_MODEL"] == 'full' else ''
-    subfolder = subfolder.split('/')[1]
-    project_name = project_name + "-" if len(project_name) > 0 and os.environ["PROJECT_PREFIX_PARENT"] == 'true' else ""
+    if '/' in subfolder:
+      project_name = subfolder.split('/')[0] if os.environ["PROJECT_SERVICE_MODEL"] == 'nested' or os.environ["PROJECT_SERVICE_MODEL"] == 'combined' or os.environ["PROJECT_SERVICE_MODEL"] == 'full' else ''
+      subfolder = subfolder.split('/')[1]
+      project_name = project_name + "-" if len(project_name) > 0 and os.environ["PROJECT_PREFIX_PARENT"] == 'true' else ""
 
-    if EVENT_TYPE == 'push':
-      if os.environ["BRANCH_ROUTE"] == 'prefix':
-          prefixed_subfolders.append(f'{branch_route}-{repo_prefix}{project_name}{subfolder}')
-      elif os.environ["BRANCH_ROUTE"] == 'postfix':
-          prefixed_subfolders.append(f'{repo_prefix}{project_name}{subfolder}-{branch_route}')
-      else:
-        prefixed_subfolders.append(f'{repo_prefix}{project_name}{subfolder}')
+      if EVENT_TYPE == 'push':
+        if os.environ["BRANCH_ROUTE"] == 'prefix':
+            prefixed_subfolders.append(f'{branch_route}-{repo_prefix}{project_name}{subfolder}')
+        elif os.environ["BRANCH_ROUTE"] == 'postfix':
+            prefixed_subfolders.append(f'{repo_prefix}{project_name}{subfolder}-{branch_route}')
+        else:
+          prefixed_subfolders.append(f'{repo_prefix}{project_name}{subfolder}')
 
-    if EVENT_TYPE == 'pull_request':
-      if os.environ["PULL_REQUEST_ROUTE"] == 'prefix':
-          prefixed_subfolders.append(f'{os.environ["PULL_REQUEST_ROUTING"]}-{repo_prefix}{project_name}{subfolder}')
-      elif os.environ["PULL_REQUEST_ROUTE"] == 'postfix':
-          prefixed_subfolders.append(f'{repo_prefix}{project_name}{subfolder}-{os.environ["PULL_REQUEST_ROUTING"]}')
-      else:
-        prefixed_subfolders.append(f'{repo_prefix}{project_name}{subfolder}')
+      if EVENT_TYPE == 'pull_request':
+        if os.environ["PULL_REQUEST_ROUTE"] == 'prefix':
+            prefixed_subfolders.append(f'{os.environ["PULL_REQUEST_ROUTING"]}-{repo_prefix}{project_name}{subfolder}')
+        elif os.environ["PULL_REQUEST_ROUTE"] == 'postfix':
+            prefixed_subfolders.append(f'{repo_prefix}{project_name}{subfolder}-{os.environ["PULL_REQUEST_ROUTING"]}')
+        else:
+          prefixed_subfolders.append(f'{repo_prefix}{project_name}{subfolder}')
 
-  
   return prefixed_subfolders
 
 def start_codepipelines(codepipeline_names: list, codepipeline_client) -> dict:
