@@ -70,7 +70,7 @@ def check_branch(event_body: dict) -> bool:
 
   if EVENT_TYPE == 'push':
     pushed_branch = event_body['ref']
-  if EVENT_TYPE == 'pull_request':
+  if EVENT_TYPE == 'pull_request' or EVENT_TYPE == 'pull_request_merged':
     pushed_branch = 'refs/heads/' + event_body['pull_request']['base']['ref']
 
   logger.info(f'Pushed branch: {pushed_branch}')
@@ -150,7 +150,7 @@ def prefix_subfolders(subfolders: set, repo_prefix: str, branch_route: str) -> l
       subfolder = subfolder.split('/')[1]
       project_name = project_name + "-" if len(project_name) > 0 and os.environ["PROJECT_PREFIX_PARENT"] == 'true' else ""
 
-      if EVENT_TYPE == 'push':
+      if EVENT_TYPE == 'push' or EVENT_TYPE == 'pull_request_merged':
         if os.environ["BRANCH_ROUTE"] == 'prefix':
             prefixed_subfolders.append(f'{branch_route}-{repo_prefix}{project_name}{subfolder}')
         elif os.environ["BRANCH_ROUTE"] == 'postfix':
@@ -232,12 +232,14 @@ def handle(event, context):
     EVENT_TYPE = 'push'
 
   if event['headers']['X-GitHub-Event'] == 'pull_request':
-    if event_body['action'] == 'closed':
-      return {
-      'statusCode': 202,
-      'body': f'I do not handle pull_request closed events'
-    }
     EVENT_TYPE = 'pull_request'
+    if event_body['action'] == 'closed' and event_body['pull_request']['merged'] != True:
+      return {
+        'statusCode': 202,
+        'body': f'I do not handle pull_request closed events only ones that are also merged'
+      }
+    elif event_body['action'] == 'closed' and event_body['pull_request']['merged'] == True:
+      EVENT_TYPE = 'pull_request_merged'
 
   branch_route = None
   try:
@@ -247,7 +249,7 @@ def handle(event, context):
     pushed_branch = ''
     if EVENT_TYPE == 'push':
       pushed_branch = event_body['ref']
-    if EVENT_TYPE == 'pull_request':
+    if EVENT_TYPE == 'pull_request' or EVENT_TYPE == 'pull_request_merged':
       pushed_branch = event_body['pull_request']['base']['ref']
     return {
       'statusCode': 202,
@@ -257,7 +259,7 @@ def handle(event, context):
   try:
     if EVENT_TYPE == 'push':
       touched_files = push_handler.get_touched_files(event_body)
-    if EVENT_TYPE == 'pull_request':
+    if EVENT_TYPE == 'pull_request' or EVENT_TYPE == 'pull_request_merged':
       touched_files = pr_handler.get_touched_files(event_body)
   except NoFilesTouchedError as err:
     logger.error(err.error_dict['body'])
