@@ -7,7 +7,9 @@ provider:
   iamRoleStatements:
     - Effect: Allow
       Action:
+        - "codepipeline:GetPipeline"
         - "codepipeline:StartPipelineExecution"
+        - "codepipeline:UpdatePipeline"
       Resource: arn:aws:codepipeline:eu-central-1:#{AWS::AccountId}:*
 
 plugins:
