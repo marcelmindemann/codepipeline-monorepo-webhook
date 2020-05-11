@@ -13,6 +13,7 @@ pytest-cov = "*"
 pylint = "*"
 astroid = "*"
 requests = "*"
+botocore = "*"
 
 [requires]
 python_version = "3.7"
