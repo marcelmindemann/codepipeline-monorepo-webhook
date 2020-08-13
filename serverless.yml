@@ -1,30 +1,49 @@
-service: monorepo-webhook
+service: monorepo
 provider:
   name: aws
   runtime: python3.7
-  stage: serverless
+  stage: ${opt:stage, 'webhook'}
   region: eu-central-1
   iamRoleStatements:
     - Effect: Allow
       Action:
+        - "codepipeline:GetPipeline"
         - "codepipeline:StartPipelineExecution"
+        - "codepipeline:UpdatePipeline"
       Resource: arn:aws:codepipeline:eu-central-1:#{AWS::AccountId}:*
-
+    - Effect: Allow
+      Action:
+        - "iam:PassRole"
+      Resource: arn:aws:iam::#{AWS::AccountId}:role/AWSCodePipeline-ServiceRole
 
 plugins:
   - serverless-python-requirements
   - serverless-pseudo-parameters
+  - serverless-offline
+
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux
+  serverless-offline:
+    port: 4000
+  environment: ${file(env.yml):${self:provider.stage}, file(env.yml):default}
 
 functions:
-  monorepoWebhook:
-    handler: webhook.handler.main
+  handler:
+    handler: webhook.handler.handle
+    timeout: 300
     environment:
-      GITHUB_WEBHOOK_SECRET: ${ssm:GithubSecret~true}
-      TARGET_BRANCH: ${file(serverless.${opt:env}.conf.yml):target_branch}
-      PREFIX_REPO_NAME: ${file(serverless.${opt:env}.conf.yml):prefix_repo_name}
+      GITHUB_WEBHOOK_SECRET: ${self:custom.environment.githubWebhookSecret}
+      GITHUB_ACCESS_TOKEN: ${self:custom.environment.githubAccessToken}
+      BRANCH_ROUTE: ${file(serverless.conf.yml):branchRouting.route}
+      BRANCH_ROUTES:  ${file(serverless.conf.js):branchRoutes}
+      PULL_REQUEST_ROUTE: ${file(serverless.conf.yml):pullRequests.route}
+      PULL_REQUEST_ROUTING: ${file(serverless.conf.yml):pullRequests.routing}
+      PROJECT_SERVICE_MODEL: ${file(serverless.conf.yml):project.serviceModel}
+      PROJECT_PREFIX_REPO: ${file(serverless.conf.yml):project.prefixRepoName}
+      PROJECT_PREFIX_PARENT: ${file(serverless.conf.yml):project.prefixParentFolder}
     events:
       - http:
           path: webhook
           method: post
           cors: true
-

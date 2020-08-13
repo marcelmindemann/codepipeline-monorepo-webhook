@@ -1,0 +1,14 @@
+branchRouting:
+  route: prefix
+  routes:
+    - master: prod
+    - dev: dev
+
+pullRequests:
+  route: postfix
+  routing: test
+
+project:
+  serviceModel: full
+  prefixParentFolder: true
+  prefixRepoName: false

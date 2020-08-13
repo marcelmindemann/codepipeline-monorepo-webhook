@@ -1,16 +1,23 @@
 import hmac
 import json
 import logging
+import json
 import os
 from urllib.parse import unquote
 
 import boto3
+from botocore.config import Config
+
+import webhook.push_handler as push_handler
+import webhook.pull_request_handler as pr_handler
 
 from .exceptions import NoSignatureError, NotListeningOnBranchError, NoSubfoldersFoundError, \
     InvalidSignatureError, NoFilesTouchedError
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+EVENT_TYPE = ''
 
 
 def calculate_message_signature(key: str, msg: str):
@@ -52,51 +59,38 @@ def get_event_body(event: dict) -> dict:
     :param event: GitHub webhook request
     :return: dict holding the event body
     """
-    event_body = json.loads(unquote(event['body']).replace('payload=', ''))
+    event_body = json.loads(event['body'])
     logger.debug(f'Parsed event body: {json.dumps(event_body, default=str)}')
     return event_body
 
 
-def check_branch(event_body: dict, target_branch: str) -> bool:
+def check_branch(event_body: dict) -> bool:
     """
     check if this webhook should care about the pushed branch
     :param event_body: dict holding the event body
     :param target_branch: which branch to care about
     :return: True if pushed branch is worthy of attention
     """
-    target_branch = f'refs/heads/{target_branch}'
-    pushed_branch = event_body['ref']
+    pushed_branch = ''
+
+    if EVENT_TYPE == 'push':
+        pushed_branch = event_body['ref']
+    if EVENT_TYPE == 'pull_request' or EVENT_TYPE == 'pull_request_merged':
+        pushed_branch = 'refs/heads/' + \
+            event_body['pull_request']['base']['ref']
+
     logger.info(f'Pushed branch: {pushed_branch}')
-    logger.info(f'Target branch: {target_branch}')
 
-    if pushed_branch == target_branch:
-        return True
-    else:
-        raise NotListeningOnBranchError(pushed_branch)
+    branches = json.loads(os.environ["BRANCH_ROUTES"])
 
+    for branch in branches:
+        target_branch = f'refs/heads/{branch}'
 
-def get_touched_files(event_body: dict) -> list:
-    """
-    extract list of added, removed and modified files with full paths from webhook request
-    :param event_body: dict holding the event body
-    :return: list of touched files
-    """
-    touched_files = []
+        if pushed_branch == target_branch:
+            logger.info(f'Target branch: {branch}')
+            return branches[branch] if type(branches) is dict else True
 
-    # look at every touched file in every commit
-    for commit in event_body['commits']:
-        touched_files.extend(commit['added'])
-        touched_files.extend(commit['removed'])
-        touched_files.extend(commit['modified'])
-
-    touched_files.extend((event_body['head_commit']['added']))
-    touched_files.extend((event_body['head_commit']['removed']))
-    touched_files.extend((event_body['head_commit']['modified']))
-
-    if len(touched_files) > 0:
-        return touched_files
-    else:
-        raise NoFilesTouchedError()
+    raise NotListeningOnBranchError(pushed_branch)
 
 
 def get_unique_subfolders(touched_files: list) -> set:
@@ -105,13 +99,41 @@ def get_unique_subfolders(touched_files: list) -> set:
     :param touched_files: list of touched files with full paths
     :return: set of folder names
     """
-    # extract unique top-level directories from all the paths of touched files
-    subfolders = set(
-        [splitted[0] for splitted in
-         (file.split('/') for file in
-          touched_files)
-         if len(splitted) > 1]
-    )
+    subfolders = []
+
+    if os.environ["PROJECT_SERVICE_MODEL"] == 'split':
+        # Get the unique top-level directories
+        subfolders = set(
+            [splitted[0] for splitted in
+             (file.split('/') for file in
+              touched_files)
+             if len(splitted) > 1]
+        )
+    elif os.environ["PROJECT_SERVICE_MODEL"] == 'nested':
+        # Get the unique second-level directories
+        subfolders = set(
+            ['/'.join(splitted[:-1:]) for splitted in
+             (file.split('/') for file in
+              touched_files)
+             if len(splitted) > 1]
+        )
+    elif os.environ["PROJECT_SERVICE_MODEL"] == 'combined':
+        # Get the unique top-level directories
+        subfolders = set(
+            ['/'.join(splitted).split('.')[0] for splitted in
+             (file.split('/') for file in
+              touched_files)
+             if len(splitted) > 1]
+        )
+
+    elif os.environ["PROJECT_SERVICE_MODEL"] == 'full':
+        # Get the unique third-level directories
+        subfolders = set(
+            ['/'.join(splitted[1:-1:]) for splitted in
+             (file.split('/') for file in
+              touched_files)
+             if len(splitted) > 1]
+        )
 
     if len(subfolders) > 0:
         logger.info(f'Subfolders found: {subfolders}.')
@@ -120,29 +142,63 @@ def get_unique_subfolders(touched_files: list) -> set:
         raise NoSubfoldersFoundError()
 
 
-def prefix_subfolders(subfolders: set, prefix: str) -> list:
+def prefix_subfolders(subfolders: set, repo_prefix: str, branch_route: str) -> list:
     """
     prefix folder names with a string, joining with dash
     :param subfolders: set of folder names
     :param prefix: the prefix to use
     :return: list of prefixed folders
     """
-    return [f'{prefix}-{subfolder}' for subfolder in subfolders]
+    prefixed_subfolders = []
+    repo_prefix = repo_prefix + \
+        "-" if os.environ["PROJECT_PREFIX_REPO"] == 'true' else ""
+
+    for subfolder in subfolders:
+        if '/' in subfolder:
+            project_name = subfolder.split(
+                '/')[0] if os.environ["PROJECT_SERVICE_MODEL"] == 'nested' or os.environ["PROJECT_SERVICE_MODEL"] == 'combined' or os.environ["PROJECT_SERVICE_MODEL"] == 'full' else ''
+            subfolder = subfolder.split('/')[1]
+            project_name = project_name + \
+                "-" if len(
+                    project_name) > 0 and os.environ["PROJECT_PREFIX_PARENT"] == 'true' else ""
+
+            if EVENT_TYPE == 'push' or EVENT_TYPE == 'pull_request_merged':
+                if os.environ["BRANCH_ROUTE"] == 'prefix':
+                    prefixed_subfolders.append(
+                        f'{branch_route}-{repo_prefix}{project_name}{subfolder}')
+                elif os.environ["BRANCH_ROUTE"] == 'postfix':
+                    prefixed_subfolders.append(
+                        f'{repo_prefix}{project_name}{subfolder}-{branch_route}')
+                else:
+                    prefixed_subfolders.append(
+                        f'{repo_prefix}{project_name}{subfolder}')
+
+            if EVENT_TYPE == 'pull_request':
+                if os.environ["PULL_REQUEST_ROUTE"] == 'prefix':
+                    prefixed_subfolders.append(
+                        f'{os.environ["PULL_REQUEST_ROUTING"]}-{repo_prefix}{project_name}{subfolder}')
+                elif os.environ["PULL_REQUEST_ROUTE"] == 'postfix':
+                    prefixed_subfolders.append(
+                        f'{repo_prefix}{project_name}{subfolder}-{os.environ["PULL_REQUEST_ROUTING"]}')
+                else:
+                    prefixed_subfolders.append(
+                        f'{repo_prefix}{project_name}{subfolder}')
+
+    return prefixed_subfolders
 
 
-def start_codepipelines(codepipeline_names: list) -> dict:
+def start_codepipelines(codepipeline_names: list, codepipeline_client) -> dict:
     """
     start AWS CodePipelines
     :param codepipeline_names: the CodePipelines to start
     :return: dict holding the results of the start operations
     """
-    codepipeline_client = boto3.Session().client('codepipeline')
 
     failed_codepipelines = []
     started_codepipelines = []
     for codepipeline_name in codepipeline_names:
         try:
-            response = codepipeline_client.start_pipeline_execution(
+            codepipeline_client.start_pipeline_execution(
                 name=codepipeline_name
             )
             logger.info(f'Started CodePipeline {codepipeline_name}.')
@@ -153,7 +209,7 @@ def start_codepipelines(codepipeline_names: list) -> dict:
 
     if len(failed_codepipelines) > 0:
         return {
-            'statusCode': 500,
+            'statusCode': 202,
             'body': f'Started CodePipelines {started_codepipelines}. \nCould not start CodePipelines {failed_codepipelines}.'
         }
     else:
@@ -163,13 +219,14 @@ def start_codepipelines(codepipeline_names: list) -> dict:
         }
 
 
-def main(event, context):
+def handle(event, context):
     """
     triggers codepipelines for commits in subfolders of the data-ingestion monorepo
     :param event: HTTP POST event, triggered by GitHub webhook
     :param context: lambda context
     :return: nothing
     """
+    global EVENT_TYPE
 
     webhook_secret = os.environ['GITHUB_WEBHOOK_SECRET']
     logger.info('---- CHECKING MESSAGE AUTHENTICATION ----')
@@ -186,37 +243,85 @@ def main(event, context):
         }
 
     github_delivery_id = event['headers']['X-GitHub-Delivery']
-    logger.info(f'Webhook handler invoked for Github delivery id {github_delivery_id}.')
+    logger.info(
+        f'Webhook handler invoked for Github delivery id {github_delivery_id}.')
 
     logger.info('---- PARSING WEBHOOK PAYLOAD ----')
     event_body = get_event_body(event)
+
+    if event['headers']['X-GitHub-Event'] == 'push':
+        EVENT_TYPE = 'push'
+
+    if event['headers']['X-GitHub-Event'] == 'pull_request':
+        EVENT_TYPE = 'pull_request'
+        if event_body['action'] == 'closed' and event_body['pull_request']['merged'] != True:
+            return {
+                'statusCode': 202,
+                'body': f'I do not handle pull_request closed events only ones that are also merged'
+            }
+        elif event_body['action'] == 'closed' and event_body['pull_request']['merged'] == True:
+            EVENT_TYPE = 'pull_request_merged'
+
+    branch_route = None
     try:
-        target_branch = os.environ["TARGET_BRANCH"]
-        check_branch(event_body, target_branch)
+        branch_route = check_branch(event_body)
     except NotListeningOnBranchError as err:
         logger.error(err.error_dict['body'])
-        return err.error_dict
+        pushed_branch = ''
+        if EVENT_TYPE == 'push':
+            pushed_branch = event_body['ref']
+        if EVENT_TYPE == 'pull_request' or EVENT_TYPE == 'pull_request_merged':
+            pushed_branch = event_body['pull_request']['base']['ref']
+        return {
+            'statusCode': 202,
+            'body': f'Not started any CodePipelines. Not listening on branch {pushed_branch}.'
+        }
 
     try:
-        touched_files = get_touched_files(event_body)
+        if EVENT_TYPE == 'push':
+            touched_files = push_handler.get_touched_files(event_body)
+        if EVENT_TYPE == 'pull_request' or EVENT_TYPE == 'pull_request_merged':
+            touched_files = pr_handler.get_touched_files(event_body)
     except NoFilesTouchedError as err:
         logger.error(err.error_dict['body'])
-        return err.error_dict
+        return {
+            'statusCode': 202,
+            'body': f'Not started any CodePipelines. No files have been changed'
+        }
 
     try:
         subfolders = get_unique_subfolders(touched_files)
     except NoSubfoldersFoundError as err:
         logger.error(err.error_dict['body'])
-        return err.error_dict
+        return {
+            'statusCode': 202,
+            'body': f'Not started any CodePipelines. No subfolders found.'
+        }
 
     logger.info('---- STARTING RESPECTIVE CODEPIPELINES ----')
-    prefix_repo_name = os.environ['PREFIX_REPO_NAME'] == 'true'
-    if prefix_repo_name:
-        repository_name = event_body['repository']['name']
-        logger.info(f'Prefixing CodePipelines with repository name: {repository_name}.')
-        codepipeline_names = prefix_subfolders(subfolders, repository_name)
-    else:
-        logger.info('Not prefixing CodePipelines with repository name.')
-        codepipeline_names = subfolders
+    repository_name = event_body['repository']['name']
+    codepipeline_names = prefix_subfolders(
+        subfolders, repository_name, branch_route)
 
-    return start_codepipelines(codepipeline_names)
+    config = Config(
+        retries=dict(
+            max_attempts=10
+        )
+    )
+    codepipeline_client = boto3.client('codepipeline', config=config)
+
+    if EVENT_TYPE == 'pull_request':
+        head_branch = event_body['pull_request']['head']['ref']
+        handled_pipelines = pr_handler.handle_pipelines(
+            event, codepipeline_names, head_branch, codepipeline_client)
+        codepipeline_names = handled_pipelines['successful']
+        logger.info(
+            f'Could not modify CodePipelines {handled_pipelines["failed"]}.')
+
+    if 'isOffline' not in event or not event['isOffline']:
+        return start_codepipelines(codepipeline_names, codepipeline_client)
+    else:
+        return {
+            'statusCode': 200,
+            'body': f'Currently offline, but the pipelines are: {codepipeline_names}.'
+        }
